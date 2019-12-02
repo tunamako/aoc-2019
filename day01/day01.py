@@ -28,8 +28,8 @@ if __name__ == '__main__':
 
     _input = [int(line) for line in _input]
 
-    #print(part_one(_input))
-    #print(part_two(_input))
+    print(part_one(_input))
+    print(part_two(_input))
 
     #cProfile.run('print(part_one(_input))')
     #cProfile.run('print(part_two(_input))')
