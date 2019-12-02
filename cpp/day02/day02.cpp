@@ -1,30 +1,22 @@
-#include <cassert>
-#include <cmath>
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <vector>
 
-#include <gmpxx.h>
-
 
 int part_one(std::vector<int> input) {
-	for (int i=0; i < input.size(); i+=4) {
+	for (uint i=0; i <= input.size() - 4; i+=4) {
+		if (input[i] == 99)
+			return input[0];
+
 		int a = input[i+1];
 		int b = input[i+2];
 		int c = input[i+3];
 
-		switch (input[i]) {
-			case 1:
+		if (input[i] == 1)
 				input[c] = input[a] + input[b];
-				break;
-			case 2:
+		else if (input[i] == 2)
 				input[c] = input[a] * input[b];
-				break;
-			case 99:
-				return input[0];			
-		}
 	}
 	return -1;
 }

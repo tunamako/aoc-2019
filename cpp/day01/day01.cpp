@@ -37,6 +37,6 @@ int main() {
 		input.push_back(tmp);
 	}
 
-	//std::cout << part_one(input) << std::endl;
+	std::cout << part_one(input) << std::endl;
 	std::cout << part_two(input) << std::endl;
 }
