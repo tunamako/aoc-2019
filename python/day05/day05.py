@@ -6,44 +6,43 @@ import re
 import math
 import time
 
+
 class AdventMachine(object):
-    # opcode: (argc, op)
 
     def store(self, value, reg):
         self.tape[reg] = value
         if self.debug:
             print("Stored {} in register {}".format(value, reg))
 
-    def add(self, a, b, out_reg):
-        self.tape[out_reg] = a + b
+    def add(self, *args):
+        self.tape[args[2]] = args[0] + args[1]
 
-    def mul(self, a, b, out_reg):
-        self.tape[out_reg] = a * b
+    def mul(self, *args):
+        self.tape[args[2]] = args[0] * args[1]
 
-    def inp(self, out_reg):
-        self.tape[out_reg] = self.start_input
+    def inp(self, *args):
+        self.tape[args[0]] = self.start_input
 
-    def outp(self, out_reg):
-        print(self.tape[out_reg])
+    def outp(self, *args):
+        print(self.tape[args[0]])
+        self.output.append(self.tape[args[0]])
 
-    def jmpt(self, a, b):
-        if a != 0:
-            self.ip = b
+    def jmpt(self, *args):
+        if args[0]: self.ip = args[1]
 
-    def jmpf(self, a, b):
-        if a == 0:
-            self.ip = b
+    def jmpf(self, *args):
+        if not args[0]: self.ip = args[1]
 
-    def lt(self, a, b, out_reg):
-        self.tape[out_reg] = int(a < b)
+    def lt(self, *args):
+        self.tape[args[2]] = int(args[0] < args[1])
 
-    def eq(self, a, b, out_reg):
-        self.tape[out_reg] = int(a == b)
+    def eq(self, *args):
+        self.tape[args[2]] = int(args[0] == args[1])
 
-    def ascii(self, a):
-        print(chr(a), end="")
+    def ascii(self, *args):
+        print(chr(args[0]), end="")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, tape=[99], start_input=0, return_output=False):
         self.opcodes = {
             1: (3, self.add),
             2: (3, self.mul),
@@ -55,54 +54,50 @@ class AdventMachine(object):
             8: (3, self.eq),
             9: (1, self.ascii),
         }
-        self.tape = [99]
+        self.tape = tape
         self.ip = 0
         self.debug = False
-        self.start_input = 0
+        self.start_input = start_input
+        self.return_output = return_output
 
-    def set_tape(self, tape):
+    def reinit(self, tape, start_input=0):
         self.tape = tape.copy()
         self.ip = 0
+        self.start_input = start_input
 
     def execute(self):
-        while (instr := str(self.tape[self.ip])) != "99":
+        self.output = []
+
+        while (instr := self.tape[self.ip]) != 99:
             ip_start = self.ip
 
-            code = int(instr[-2:])
+            code = instr % 100
+            modes = [(instr // n) % 10 for n in [100, 1000, 10000]]
+            print(instr, modes)
+            argA = self.tape[self.ip+1] if modes[0] else self.tape[self.tape[self.ip+1]]
+            argB = self.tape[self.ip+2] if modes[1] else self.tape[self.tape[self.ip+2]]
+            argC = self.tape[self.ip+3] if modes[2] else self.tape[self.tape[self.ip+3]]
+
+            args = [argA, argB, argC]
             op = self.opcodes[code]
-            argc = op[0]
-            args = self.tape[self.ip + 1 : self.ip + 1 + argc]
-
-            translatable_args = argc if argc == 2 else argc - 1
-
-            if len(instr) > 2:
-                modes = instr[:-2][::-1].ljust(translatable_args, '0')
-                for i, m in enumerate(modes):
-                    if m == '0':
-                        args[i] = self.tape[args[i]]
-            else:
-                modes = ''
-                for i in range(translatable_args):
-                    args[i] = self.tape[args[i]]
-
-            if code == 4 and modes == '1':
-                print(args[0])
-            else: 
-                op[1](*args)
+            print(args)
+            time.sleep(0.1)
+            op[1](*args)
 
             if self.ip == ip_start:
-                self.ip += argc + 1
+                self.ip += op[0] + 1
+
+        if self.return_output:
+            return self.output
 
 def part_one(_input):
     machine = AdventMachine()
-    machine.set_tape(_input)
-    machine.start_input = 1
+    machine.reinit(_input, 1)
     return machine.execute()
 
 def part_two(_input):
     machine = AdventMachine()
-    machine.set_tape(_input)
-    machine.start_input = 5
+    machine.reinit(_input, 5)
     return machine.execute()
 
 
