@@ -7,11 +7,7 @@ import math
 
 
 def part_one(_input):
-    total = 0
-    for mass in _input:
-        total += mass//3 - 2
-    return total
-
+    return sum(mass//3 -2 for mass in _input)
 
 def part_two(_input):
     total = 0

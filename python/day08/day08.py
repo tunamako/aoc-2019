@@ -5,44 +5,42 @@ from itertools import permutations, combinations, chain
 import re
 import math
 
+I_WIDTH = 25
+I_HEIGHT = 6
+LAYER_LEN = I_HEIGHT * I_WIDTH
+BLACK = 0
+WHITE = 1
+TRANSPARENT = 2
 
 def get_layers(data):
-	layers = []
-	for i in range(0, len(_input), 25 * 6):
-		layers.append(_input[i:i+25 * 6])
-	return layers
+	for i in range(0, len(_input), LAYER_LEN):
+		yield _input[i : i + LAYER_LEN]
 
 def part_one(_input):
-	layers = get_layers(_input)
-	layer_fewest = None
-
-	for i, l in enumerate(layers):
-		if layer_fewest is None or l.count(0) < layer_fewest[1]:
-			layer_fewest = (i, l.count(0))
-
-	return layers[layer_fewest[0]].count(1) * layers[layer_fewest[0]].count(2)
+	min_zero = min(get_layers(_input), key=lambda l: l.count(0))
+	return min_zero.count(1) * min_zero.count(2)
 
 def part_two(_input):
     layers = get_layers(_input)
-    final = []
-    for pix in range(len(layers[0])):
-    	if all([l[pix] == 2 for l in layers]):
-    		final.append(' ')
-    	else:
-    		final.append('x')
-    	#if len(final) <= pix:
+    final = [None for x in range(LAYER_LEN)]
 
+    for l in layers:
+    	for pix in range(LAYER_LEN):
+    		if final[pix] is not None or l[pix] == TRANSPARENT:
+    			continue
+    		else:
+    			final[pix] = 'x' if l[pix] else ' '
 
-    for i in range(0, 25*6, 25):
-    	print(''.join(map(str, final[i:i+25])))
+    out = ''
+    for i in range(0, LAYER_LEN, I_WIDTH):
+    	out += ''.join(final[i : i + I_WIDTH]) + '\n'
+
+    return out
 
 if __name__ == '__main__':
     puzzle = Puzzle(year=2019, day=8)
     _input = list(map(int, puzzle.input_data))
     #_input = open('bigboy').readlines()
 
-    #print(part_one(_input))
+    print(part_one(_input))
     print(part_two(_input))
-
-    #cProfile.run('print(part_one(_input))')
-    #cProfile.run('print(part_two(_input))')
