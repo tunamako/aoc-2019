@@ -9,11 +9,6 @@ import time
 
 class AdventMachine(object):
 
-    def store(self, value, reg):
-        self.tape[reg] = value
-        if self.debug:
-            print("Stored {} in register {}".format(value, reg))
-
     def add(self, *args):
         self.tape[args[2]] = args[0] + args[1]
 
@@ -24,8 +19,8 @@ class AdventMachine(object):
         self.tape[args[0]] = self.start_input
 
     def outp(self, *args):
-        print(self.tape[args[0]])
-        self.output.append(self.tape[args[0]])
+        print(args[0])
+        self.output.append(args[0])
 
     def jmpt(self, *args):
         if args[0]: self.ip = args[1]
@@ -70,22 +65,22 @@ class AdventMachine(object):
 
         while (instr := self.tape[self.ip]) != 99:
             ip_start = self.ip
-
             code = instr % 100
             modes = [(instr // n) % 10 for n in [100, 1000, 10000]]
-            print(instr, modes)
-            argA = self.tape[self.ip+1] if modes[0] else self.tape[self.tape[self.ip+1]]
-            argB = self.tape[self.ip+2] if modes[1] else self.tape[self.tape[self.ip+2]]
-            argC = self.tape[self.ip+3] if modes[2] else self.tape[self.tape[self.ip+3]]
+            args = self.tape[self.ip+1 : self.ip+4]
 
-            args = [argA, argB, argC]
-            op = self.opcodes[code]
-            print(args)
-            time.sleep(0.1)
-            op[1](*args)
+            argc, op = self.opcodes[code]
+
+            for i in range(2):
+                try:
+                    if not modes[i] and code != 3:
+                        args[i] = self.tape[args[i]]
+                except:
+                    break
+            op(*args)
 
             if self.ip == ip_start:
-                self.ip += op[0] + 1
+                self.ip += argc + 1
 
         if self.return_output:
             return self.output
