@@ -5,8 +5,8 @@ from itertools import permutations, combinations, chain
 import re
 import math
 
-I_WIDTH = 25
-I_HEIGHT = 6
+I_WIDTH = 46
+I_HEIGHT = 36
 LAYER_LEN = I_HEIGHT * I_WIDTH
 BLACK = 0
 WHITE = 1
@@ -29,7 +29,7 @@ def part_two(_input):
     		if final[pix] is not None or l[pix] == TRANSPARENT:
     			continue
     		else:
-    			final[pix] = 'x' if l[pix] else ' '
+    			final[pix] = '*' if l[pix] else ' '
 
     out = ''
     for i in range(0, LAYER_LEN, I_WIDTH):
@@ -40,7 +40,7 @@ def part_two(_input):
 if __name__ == '__main__':
     puzzle = Puzzle(year=2019, day=8)
     _input = list(map(int, puzzle.input_data))
-    #_input = open('bigboy').readlines()
+    _input = list(map(int, open('big_boy.txt').readlines()[0]))
 
-    print(part_one(_input))
+    #print(part_one(_input))
     print(part_two(_input))

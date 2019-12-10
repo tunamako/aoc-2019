@@ -9,8 +9,8 @@ import time
 class AdventMachine(object):
 
     def extend_tape(self, loc):
-        print("Extending tape to ", loc)
-        new_end = 2 * (loc - len(self.tape))
+        new_end = len(self.tape) + loc
+        #print("Extending tape to ", new_end)
         self.tape += [0 for i in range(new_end)]
 
     def store(self, loc, value):
@@ -19,6 +19,14 @@ class AdventMachine(object):
         except IndexError:
             self.extend_tape(loc)
             self.tape[loc] = value
+
+    def read(self, loc):
+        try:
+            return self.tape[loc]
+        except IndexError:
+            self.extend_tape(loc)
+            return self.tape[loc]
+
 
     def add(self, *args):
         self.store(args[2], args[0] + args[1])
@@ -36,7 +44,6 @@ class AdventMachine(object):
             self.next_input_loc = None
 
     def outp(self, *args):
-        #print(args[0])
         self.output.append(args[0])
 
     def jmpt(self, *args):
@@ -53,7 +60,7 @@ class AdventMachine(object):
 
     def adj_base(self, *args):
         self.relative_base += args[0]
-        print("Incremented base to ", self.relative_base)
+        #print("Incremented base to ", self.relative_base)
 
     def __init__(self, tape=[99], start_input=None, return_output=False):
         self.opcodes = {
@@ -96,7 +103,7 @@ class AdventMachine(object):
         else:
             self.output = []
 
-        while (instr := self.tape[self.ip]) != 99:
+        while (instr := self.read(self.ip)) != 99:
             ip_start = self.ip
             code = instr % 100
 
@@ -107,30 +114,32 @@ class AdventMachine(object):
                 modes = [0,0,0]
 
             args = self.tape[self.ip+1 : self.ip+4]
-            #time.sleep(0.1)
 
             argc, op = self.opcodes[code]
 
-            #if code == 3:
-            #    if modes[0] == 2:
-            #        args[0] += self.relative_base
-            if code == 9:
+            if code == 3:
                 if modes[0] == 2:
-                    try:
-                        args[0] += self.tape[args[0] + self.relative_base]
-                    except IndexError:
-                        self.extend_tape(args[0] + self.relative_base)
-                        args[0] += self.tape[args[0] + self.relative_base]
+                    args[0] += self.relative_base
+            elif code == 4:
+                if modes[0] == 2:
+                    args[0] = self.read(args[0] + self.relative_base)
                 elif modes[0] == 0:
-                    args[0] = self.tape[args[0]]
+                    args[0] = self.read(args[0])
+            elif code == 9:
+                if modes[0] == 2:
+                    args[0] = self.read(args[0] + self.relative_base)
+                elif modes[0] == 0:
+                    args[0] = self.read(args[0])
             else:
                 for i in range(2):
                     if modes[i] == 0:
-                        args[i] = self.tape[args[i]]
+                        args[i] = self.read(args[i])
                     elif modes[i] == 2:
-                        args[i] = self.tape[args[i] + self.relative_base]
+                        args[i] = self.read(args[i] + self.relative_base)
 
-            print(instr, modes, args, self.output)
+            if modes[2] == 2:
+                args[2] += self.relative_base
+            #print(instr, modes, args, self.output)
 
             op(*args)
 
@@ -147,18 +156,17 @@ class AdventMachine(object):
 def part_one(_input):
     machine = AdventMachine(_input, 1, return_output=True)
 
-    print(machine.execute())
+    return machine.execute()[0]
 
 def part_two(_input):
-    pass
+    machine = AdventMachine(_input, 2, return_output=True)
+
+    return machine.execute()[0]
 
 
 if __name__ == '__main__':
     puzzle = Puzzle(year=2019, day=9)
     _input = list(map(int, puzzle.input_data.split(',')))
-    #_input = "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
-    #_input = list(map(int, _input.split(',')))
-    #_input = open('bigboy').readlines()
 
     print(part_one(_input))
     print(part_two(_input))
