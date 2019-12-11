@@ -93,6 +93,8 @@ class AdventMachine(object):
         self.relative_base = 0
 
     def execute(self, next_input=None):
+        self.output = []
+
         if next_input is not None:
             self.next_input = next_input
 
@@ -100,8 +102,6 @@ class AdventMachine(object):
             self.paused = False
             self.inp(self.next_input_loc)
             self.ip += 2
-        else:
-            self.output = []
 
         while (instr := self.read(self.ip)) != 99:
             ip_start = self.ip
@@ -152,24 +152,56 @@ class AdventMachine(object):
         if self.return_output:
             return self.output
 
+Point = namedtuple("Point", ['x', 'y']) 
+
 class Paintbot(object):
 
     def __init__(self, program):
         self.brain = AdventMachine(tape=program, return_output=True)
+        self.pos = Point(0,0)
         self.facing = "N"
         self.panel = 0
+        self.grid = dict()
+        self.painted = 0
 
-    def turn(direction):
+    def paint(self, color):
+        if self.pos not in self.grid:
+            self.painted += 1
+
+        self.grid[self.pos] = color
+        self.panel = color
+
+    def step(self, count=1):
+        moves = {
+            'N': (0, 1),
+            'S': (0, -1),
+            'E': (1, 0),
+            'W': (-1, 0),
+        }
+
+        move = moves[self.facing]
+        self.pos = Point(self.pos.x + (count * move[0]), self.pos.y + (count * move[1]))
+
+    def turn(self, direction):
         moves = [
             {'N':'W', 'E':'N', 'S':'E', 'W':'S'},
             {'N':'E', 'E':'S', 'S':'W', 'W':'N'},
         ]
         self.facing = moves[direction][self.facing]
+        self.step()
 
+    def run_program(self):
+        
+        while self.brain.execute(self.panel) is None:
+            print(self.brain.output, self.pos, self.panel)
+            next_panel, next_step = self.brain.output
+            self.paint(next_panel)
+            self.turn(next_step)
 
 def part_one(_input):
     bot = Paintbot(_input)
-
+    bot.run_program()
+    print(bot.painted)
 
 def part_two(_input):
     pass
