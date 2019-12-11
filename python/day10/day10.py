@@ -8,63 +8,47 @@ from pprint import pprint
 import numpy as np
 import sys
 
-np.set_printoptions(threshold=sys.maxsize)
-
 Point = namedtuple('Point', ['x', 'y'])
 
-def dist(A, B):
-    return abs(A.x - B.x) + abs(A.y - B.y)
+def get_asteroids(_input):
+    grid = [list(y) for y in _input]
+    grid = np.swapaxes(np.array(grid, str), 0, 1) 
+    return np.argwhere(grid == '#')
 
 def part_one(_input):
-    grid = [list(y) for y in _input]
-    grid = np.swapaxes(np.array(grid, str), 0, 1)
-
-    asteroids = {}
-
-    for x in range(len(grid)):
-        for y in range(len(grid[0])):
-            if grid[x][y] == '#':
-                asteroids[Point(x,y)] = set()
-
-    
-    for A in asteroids:
-        angles = set()
-        for B in asteroids:
-            if A is not B:
-                asteroids[A].add(math.atan2(A.y - B.y, A.x - B.x))
+    asteroids = {Point(x, y): set() for (x, y) in get_asteroids(_input)}
+   
+    for A, B in permutations(asteroids, 2):
+        asteroids[A].add(math.atan2(A.y - B.y, A.x - B.x))
 
     max_ass = max(asteroids, key=lambda a: len(asteroids[a]))
-    return len(asteroids[max_ass])
+    return (max_ass, len(asteroids[max_ass]))
 
 def part_two(_input):
-    grid = [list(y) for y in _input]
-    grid = np.swapaxes(np.array(grid, str), 0, 1)
+    station = part_one(_input)[0]
+    ass_angles = defaultdict(lambda: [])
+    start_angle = -1 * math.pi/2
 
-    station = (Point(26, 28), defaultdict(lambda: []))
-    asteroids = set()
+    for x, y in get_asteroids(_input):
+        angle = math.atan2(y - station.y, x - station.x)
+        ass_angles[angle].append(Point(x,y))
 
-    for x in range(len(grid)):
-        for y in range(len(grid[0])):
-            if grid[x][y] == '#':
-                if Point(x,y) != station[0]:
-                    angle = -1 * math.atan2(y - station[0].y, x - station[0].x)
-                    station[1][angle].append(Point(x,y))
+    if start_angle not in ass_angles:
+        ass_angles[start_angle] = []
 
-    angles = sorted(list(station[1].keys()), reverse=True)
-    if math.pi/2 not in angles:
-        angles.append(math.pi/2)
-        angles.sort(reverse=True)
+    angles = sorted(list(ass_angles))
+    man_dist = lambda p: abs(station.x - p.x) + abs(station.y - p.y)
 
-    for a in angles:
-        station[1][a].sort(key=lambda p: dist(station[0], p), reverse=True)
+    for angle in angles:
+        ass_angles[angle].sort(key=man_dist, reverse=True)
 
-    start_idx = angles.index(math.pi/2)
     destroyed = 0
-    for angle in islice(cycle(angles), start_idx, None):
-        try:
-            next_destroyed = station[1][angle].pop()
-        except IndexError:
+    for angle in islice(cycle(angles), angles.index(start_angle), None):
+        if ass_angles[angle] == []:
+            del ass_angles[angle]
             continue
+
+        next_destroyed = ass_angles[angle].pop()
         destroyed += 1
 
         if destroyed == 200:
