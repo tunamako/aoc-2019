@@ -5,6 +5,8 @@ from itertools import permutations, combinations, chain
 import re
 import math
 
+from advent_machine import AdventMachine, Paintbot
+
 
 def part_one(_input):
     pass
