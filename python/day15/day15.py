@@ -1,12 +1,14 @@
-from aocd.models import Puzzle
+#from aocd.models import Puzzle
 import cProfile
 from collections import defaultdict, namedtuple, Counter, deque
-from itertools import permutations, combinations, chain
+from itertools import permutations, combinations, chain, count
+from copy import deepcopy
 import re
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from queue import Queue
 
 from advent_machine import AdventMachine, Paintbot
 
@@ -23,115 +25,135 @@ moves = {
     "W": (-1, 0),
 }
 
+def droid_id():
+    for i in count(start=1, step=1):
+        yield i
+
+seen = {Point(0,0)}
+walls = set()
 
 class RepairDroid(object):
 
-    def __init__(self, tape):
+    get_droid_id = droid_id()
+
+    def __init__(self, tape, facing="N", pos=Point(0,0), path={Point(0,0)}):
         self.brain = AdventMachine(tape, return_output=True)
-        self.path = {Point(0,0)}
-        self.seen = {Point(0,0)}
+        self.path = path
+        self.pos = pos
 
-        self.pos = Point(0,0)
-        self.walls = set()
-        self.facing = "N"
+        self.facing = facing
+        self.id = next(self.get_droid_id)
 
-    def turn_left(self):
-        turns = {"N": "W", "W": "S", "S": "E", "E": "N"}
-        self.facing = turns[self.facing]
+    def are_opposite_dirs(self, a, b):
+        return ((a + b == "NS") or \
+                (a + b == "SN") or \
+                (a + b == "EW") or \
+                (a + b == "WE"))
 
-    def turn_right(self):
-        turns = {"W": "N", "S": "W", "E": "S", "N": "E"}
-        self.facing = turns[self.facing]
+    def duplicate(self, ignore_backtrack=True):
+        new_droids = []
+        for new_dir in "NSEW":
+            if ignore_backtrack and (self.are_opposite_dirs(new_dir, self.facing)):
+                continue
+            new_droid = RepairDroid(self.brain.tape, new_dir, Point(self.pos.x, self.pos.y), deepcopy(self.path))
+            new_droids.append(new_droid)
+            #print(self.id, self.facing, new_droid.id, new_dir)
+        return new_droids
 
     def record_wall(self):
         move = moves[self.facing]
         wall_pos = Point(self.pos.x + move[0], self.pos.y + move[1])
 
-        self.walls.add(wall_pos)
+        walls.add(wall_pos)
 
     def record_move(self):
         move = moves[self.facing]
         next_pos = Point(self.pos.x + move[0], self.pos.y + move[1])
-        if next_pos == Point(-2, 2):
-            print("wah")
 
-        if next_pos in self.path:
-            try:
-                self.path.remove(self.pos)
-            except:
-                pass
-            self.path.remove(next_pos)
-        else:
-            self.path.add(next_pos)
+        self.path.add(next_pos)
 
-        self.seen.add(next_pos)
+        seen.add(next_pos)
         self.pos = next_pos
 
-    def play(self, stop_at_oxygen=True):
-        # Move forward until wall found, then:
-            # keep wall on right hand side, moving along it
-        use_rhr = True
-        while True:
-            #time.sleep(0.1)
-            self.brain.execute(' NSWE'.index(self.facing))
-            #print(len(self.walls), len(self.seen))
-            if len(self.walls) == 858 and len(self.seen) == 799:
-                print("wahwah")
-                use_rhr = False
-            if self.brain.output[0] == 0:
-                # Wall
-                self.record_wall()
-                if use_rhr:
-                    self.turn_left()
-                else:
-                    self.turn_right()
-            elif self.brain.output[0] == 1:
-                # Moved
-                self.record_move()
-                if use_rhr:
-                    self.turn_right()
-                else:
-                    self.turn_left()
+    def step(self):
+        self.brain.execute(' NSWE'.index(self.facing))
 
-            elif self.brain.output[0] == 2:
-                # Oxygen
-                if stop_at_oxygen:
-                    return
+        if self.brain.output[0] == 0:
+            # Wall
+            self.record_wall()
+            return -1
+        elif self.brain.output[0] == 1:
+            # Moved
+            self.record_move()
+        elif self.brain.output[0] == 2:
+            return 0
 
-                self.record_move()
-                if use_rhr:
-                    self.turn_right()
+def part_one(_input, show_plot=True):
+
+    #droid.play(stop_at_oxygen=False)
+    #print(droid.pos)
+    end_droid = None
+    droids = [
+        RepairDroid(_input, facing="N"),
+        RepairDroid(_input, facing="S"),
+    ]
+
+    while droids:
+        new_droids = []
+
+        for droid in droids:
+            for d in droid.duplicate():
+                err = d.step()
+
+                if err == 0:
+                    oxy_pos = d.pos
+                    oxy_path_len = len(d.path)
+                    new_droids.append(d)
+                elif err == -1:
+                    continue
                 else:
-                    self.turn_left()
+                    new_droids.append(d)
 
-def part_one(_input):
-    droid = RepairDroid(_input)
-    droid.play(stop_at_oxygen=False)
-    print(droid.pos)
+        droids = new_droids
 
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
-    #858, 799
-    x, y = zip(*[(p.x, p.y) for p in droid.seen])
+    x, y = zip(*[(p.x, p.y) for p in seen])
     ax1.scatter(x, y, c='b')
-    x, y = zip(*[(p.x, p.y) for p in droid.walls])
+    x, y = zip(*[(p.x, p.y) for p in walls])
     ax1.scatter(x, y, c='r')
 
-    plt.show()
+    if show_plot:
+        plt.show()
 
-    return len(droid.path)
+    return oxy_path_len, oxy_pos
 
 def part_two(_input):
-    pass
+    oxy_path_len, oxy_pos = part_one(_input, False)
+    print(oxy_path_len)
+    leads = [oxy_pos]
+    mins = 0
+    filled = {Point(12, -11)}
+    while leads:
+        mins += 1
+        new_leads = []
 
+        for p in leads:
+            for adj in [Point(p.x + m[1][0], p.y + m[1][1]) for m in moves.items()]:
+                if adj in filled or adj in walls:
+                    continue
+                filled.add(adj)
+                new_leads.append(adj) 
+        leads = new_leads
+
+    return mins
 
 if __name__ == '__main__':
-    puzzle = Puzzle(year=2019, day=15)
-    _input = list(map(int, puzzle.input_data.split(',')))
-    #_input = list(map(int, open("input").readline().split(',')))
-    #_input = open('bigboy').readlines()
+    #puzzle = Puzzle(year=2019, day=15)
+    #_input = list(map(int, puzzle.input_data.split(',')))
+    _input = list(map(int, open("input").readline().split(',')))
 
-    print(part_one(_input))
+    #print(part_one(_input))
     print(part_two(_input))
 
     #cProfile.run('print(part_one(_input))')
